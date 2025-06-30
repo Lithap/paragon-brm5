@@ -1,12 +1,3 @@
--- PARAGON SYSTEMS  |  Loader UI  (Build 7.0 – Hardened, Zero‑Error, ASCII‑Only)
---  Key Features
---    * Pure Lua 5.1 syntax – no UTF‑8, no exotic comments, no +=, no emojis.
---    * Parents to PlayerGui only – avoids CoreGui permission errors.
---    * Press Enter in textbox OR use Unlock button / keyboard navigation.
---    * Responsive sizing, minimal calculations (cached viewport size).
---    * Blue border default, flashes Red on invalid key, Green on success.
-----------------------------------------------------------------------
-
 --------------------------------------------------------------------
 --  SERVICES & SHORTCUTS
 --------------------------------------------------------------------
@@ -20,7 +11,7 @@ local LP           = Players.LocalPlayer
 local function log(msg) print("[PARAGON] " .. msg) end
 
 --------------------------------------------------------------------
---  CONSTANTS (COLOURS & SETTINGS)
+--  CONSTANTS
 --------------------------------------------------------------------
 local COLOR_BLUE   = Color3.fromRGB(0,160,255)
 local COLOR_RED    = Color3.fromRGB(255,70,70)
@@ -31,7 +22,7 @@ local MIN_PANEL_H  = 260
 local VALID_KEY    = "paragon"
 
 --------------------------------------------------------------------
---  ROOT GUI (PlayerGui only)
+--  ROOT GUI
 --------------------------------------------------------------------
 local gui = Instance.new("ScreenGui")
 if syn and syn.protect_gui then syn.protect_gui(gui) end
@@ -61,7 +52,7 @@ stroke.Color = COLOR_BLUE
 stroke.Transparency = 0.4
 
 --------------------------------------------------------------------
---  HEADER  (ASCII title, executor‑safe)
+--  HEADER
 --------------------------------------------------------------------
 local header = Instance.new("TextLabel", panel)
 header.Size = UDim2.new(1,0,0,40)
@@ -142,7 +133,7 @@ rows[1] = unlockBtn
 hiMap[unlockBtn] = unlockHi
 
 --------------------------------------------------------------------
---  RESIZE FUNCTION (responsive, lightweight)
+--  RESIZE FUNCTION
 --------------------------------------------------------------------
 local cachedVP = Vector2.new()
 local function resize(force)
@@ -150,8 +141,8 @@ local function resize(force)
     if not force and vp == cachedVP then return end
     cachedVP = vp
 
-    -- compute needed height
-    local neededH = 46 -- header+divider
+
+    local neededH = 46
     for _,child in ipairs(container:GetChildren()) do
         if child:IsA("Frame") or child:IsA("TextButton") then
             neededH = neededH + child.Size.Y.Offset + layout.Padding.Offset
@@ -183,7 +174,7 @@ local function setSel(i)
 end
 setSel(1)
 
--- Keyboard and mouse navigation
+
 UIS.InputBegan:Connect(function(inp, gp)
     if gp then return end
     if inp.KeyCode == Enum.KeyCode.Up   and not keyBox:IsFocused() then setSel(selIndex - 1)
@@ -231,7 +222,6 @@ local function goodKey()
     unlockBtn.Text = "Granted"
     unlockBtn.TextColor3 = COLOR_GREEN
     wait(0.3)
-    -- fade & shrink
     TweenService:Create(panel, TweenInfo.new(0.4), {BackgroundTransparency = 1, Size = UDim2.new(0,0,0,0)}):Play()
     shadow:Destroy()
     wait(0.45)
