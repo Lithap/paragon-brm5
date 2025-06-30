@@ -222,6 +222,15 @@ local function goodKey()
     unlockBtn.Text = "Granted"
     unlockBtn.TextColor3 = COLOR_GREEN
     task.wait(0.3)
+
+    local success, err = pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Lithap/paragon-brm5/main/openworld.lua"))()
+    end)
+    if not success then
+        warn("[PARAGON] Failed to load OpenWorld UI:", err)
+    end
+
+
     TweenService:Create(panel, TweenInfo.new(0.4), {
         BackgroundTransparency = 1,
         Size = UDim2.new(0,0,0,0)
