@@ -32,15 +32,8 @@ gui.Parent = LP:WaitForChild("PlayerGui")
 log("GUI mounted to PlayerGui")
 
 --------------------------------------------------------------------
---  SHADOW & MAIN PANEL
+--  MAIN PANEL
 --------------------------------------------------------------------
-local shadow = Instance.new("Frame", gui)
-shadow.BackgroundColor3 = Color3.new(0,0,0)
-shadow.BackgroundTransparency = 0.8
-shadow.BorderSizePixel = 0
-shadow.ZIndex = 0
-Instance.new("UICorner", shadow).CornerRadius = UDim.new(0,6)
-
 local panel = Instance.new("Frame", gui)
 panel.BackgroundColor3 = COLOR_PANEL
 panel.BackgroundTransparency = 0.3
@@ -105,7 +98,7 @@ keyBox.ClearTextOnFocus = false
 Instance.new("UICorner", keyBox).CornerRadius = UDim.new(0,4)
 
 --------------------------------------------------------------------
---  BUTTON ROW FACTORY (creates selectable rows)
+--  BUTTON ROW FACTORY
 --------------------------------------------------------------------
 local function createRow(text)
     local btn = Instance.new("TextButton", container)
@@ -141,7 +134,6 @@ local function resize(force)
     if not force and vp == cachedVP then return end
     cachedVP = vp
 
-
     local neededH = 46
     for _,child in ipairs(container:GetChildren()) do
         if child:IsA("Frame") or child:IsA("TextButton") then
@@ -154,7 +146,6 @@ local function resize(force)
     local width  = math.clamp(vp.X * 0.28, 320, 500)
     local height = math.max(neededH + 20, MIN_PANEL_H)
     panel.Size   = UDim2.new(0,width,0,height)
-    shadow.Size  = panel.Size + UDim2.new(0,6,0,6)
 end
 resize(true)
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() resize(true) end)
@@ -173,7 +164,6 @@ local function setSel(i)
     end
 end
 setSel(1)
-
 
 UIS.InputBegan:Connect(function(inp, gp)
     if gp then return end
@@ -223,7 +213,6 @@ local function goodKey()
     unlockBtn.TextColor3 = COLOR_GREEN
     wait(0.3)
     TweenService:Create(panel, TweenInfo.new(0.4), {BackgroundTransparency = 1, Size = UDim2.new(0,0,0,0)}):Play()
-    shadow:Destroy()
     wait(0.45)
     gui:Destroy()
 end
@@ -238,10 +227,6 @@ unlockBtn.MouseButton1Click:Connect(checkKey)
 --  OPENING TWEEN
 --------------------------------------------------------------------
 panel.Position = UDim2.new(0.5, -panel.Size.X.Offset / 2, 1, 0)
-shadow.Position = panel.Position + UDim2.new(0,4,0,4)
 TweenService:Create(panel, TweenInfo.new(0.7, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
     {Position = UDim2.new(0.5, -panel.Size.X.Offset / 2, 0.5, -panel.Size.Y.Offset / 2)}):Play()
-TweenService:Create(shadow, TweenInfo.new(0.7, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-    {Position = shadow.Position - UDim2.new(0,0,1, panel.Size.Y.Offset / 2 - 4)}):Play()
-
 log("Loader ready. Enter key and press Enter or Unlock.")
