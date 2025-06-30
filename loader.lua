@@ -1,4 +1,3 @@
-
 --------------------------------------------------------------------
 --  SERVICES & SHORTCUTS
 --------------------------------------------------------------------
@@ -23,12 +22,21 @@ local MIN_PANEL_H  = 260
 local VALID_KEY    = "paragon"
 
 --------------------------------------------------------------------
+--  CHECK FOR EXISTING GUI
+--------------------------------------------------------------------
+if LP:FindFirstChild("PlayerGui") and LP.PlayerGui:FindFirstChild("ParagonLoaderUI") then
+    LP.PlayerGui.ParagonLoaderUI:Destroy()
+    log("Old loader destroyed (duplicate prevention)")
+end
+
+--------------------------------------------------------------------
 --  ROOT GUI
 --------------------------------------------------------------------
 local gui = Instance.new("ScreenGui")
 if syn and syn.protect_gui then syn.protect_gui(gui) end
 gui.IgnoreGuiInset = true
 gui.Name = "ParagonLoaderUI"
+gui.ResetOnSpawn = false
 gui.Parent = LP:WaitForChild("PlayerGui")
 log("GUI mounted to PlayerGui")
 
@@ -40,6 +48,7 @@ panel.BackgroundColor3 = COLOR_PANEL
 panel.BackgroundTransparency = 0.3
 panel.BorderSizePixel = 0
 panel.ZIndex = 1
+panel.Position = UDim2.new(0.5, -160, 0.5, -MIN_PANEL_H/2)
 Instance.new("UICorner", panel).CornerRadius = UDim.new(0,6)
 local stroke = Instance.new("UIStroke", panel)
 stroke.Color = COLOR_BLUE
@@ -62,7 +71,7 @@ divider.Position = UDim2.new(0,6,0,42)
 divider.BackgroundColor3 = COLOR_BLUE
 
 --------------------------------------------------------------------
---  CONTENT CONTAINER & LIST LAYOUT
+--  CONTAINER & LAYOUT
 --------------------------------------------------------------------
 local container = Instance.new("Frame", panel)
 container.BackgroundTransparency = 1
@@ -99,7 +108,7 @@ keyBox.ClearTextOnFocus = false
 Instance.new("UICorner", keyBox).CornerRadius = UDim.new(0,4)
 
 --------------------------------------------------------------------
---  BUTTON ROW FACTORY
+--  BUTTON
 --------------------------------------------------------------------
 local function createRow(text)
     local btn = Instance.new("TextButton", container)
@@ -127,7 +136,7 @@ rows[1] = unlockBtn
 hiMap[unlockBtn] = unlockHi
 
 --------------------------------------------------------------------
---  RESIZE FUNCTION
+--  RESIZE / ADJUST
 --------------------------------------------------------------------
 local cachedVP = Vector2.new()
 local function resize(force)
@@ -153,7 +162,7 @@ layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() resize
 Camera:GetPropertyChangedSignal("ViewportSize"):Connect(resize)
 
 --------------------------------------------------------------------
---  SELECTION / HIGHLIGHT HANDLING
+--  SELECT / HIGHLIGHT
 --------------------------------------------------------------------
 local selIndex = 1
 local function setSel(i)
@@ -202,7 +211,7 @@ local function badKey()
     border(COLOR_RED)
     unlockBtn.Text = "Invalid"
     unlockBtn.TextColor3 = COLOR_RED
-    wait(1)
+    task.wait(1)
     unlockBtn.Text = "Unlock"
     unlockBtn.TextColor3 = COLOR_TEXT
     border(COLOR_BLUE)
@@ -212,9 +221,12 @@ local function goodKey()
     border(COLOR_GREEN)
     unlockBtn.Text = "Granted"
     unlockBtn.TextColor3 = COLOR_GREEN
-    wait(0.3)
-    TweenService:Create(panel, TweenInfo.new(0.4), {BackgroundTransparency = 1, Size = UDim2.new(0,0,0,0)}):Play()
-    wait(0.45)
+    task.wait(0.3)
+    TweenService:Create(panel, TweenInfo.new(0.4), {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0,0,0,0)
+    }):Play()
+    task.wait(0.45)
     gui:Destroy()
 end
 
@@ -228,6 +240,8 @@ unlockBtn.MouseButton1Click:Connect(checkKey)
 --  OPENING TWEEN
 --------------------------------------------------------------------
 panel.Position = UDim2.new(0.5, -panel.Size.X.Offset / 2, 1, 0)
-TweenService:Create(panel, TweenInfo.new(0.7, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-    {Position = UDim2.new(0.5, -panel.Size.X.Offset / 2, 0.5, -panel.Size.Y.Offset / 2)}):Play()
-log("Loader ready. Enter key and press Enter or Unlock.")
+TweenService:Create(panel, TweenInfo.new(0.7, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Position = UDim2.new(0.5, -panel.Size.X.Offset / 2, 0.5, -panel.Size.Y.Offset / 2)
+}):Play()
+
+log("Loader ready – type key, press Enter or click Unlock.")
