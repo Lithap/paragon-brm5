@@ -15,8 +15,8 @@ local MAX_DIST   = 1500                -- render distance
 local BAR_SIZE   = Vector2.new(60, 4)  -- longer health bar for clarity
 local DRAW_OK    = pcall(function()return Drawing end)
 local ESP = {
-  Enabled = true,
-  Opt = { box=true, chams=true, tracers=true, distance=true, health=true, vischeck=true },
+  Enabled = false,
+  Opt = { box=false, chams=false, tracers=false, distance=false, health=false, vischeck=false },
   Tgt = {},
   Cache = {
     box=setmetatable({}, {__mode='k'}), cham=setmetatable({}, {__mode='k'}),
