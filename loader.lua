@@ -151,10 +151,7 @@ end
 --------------------------------------------------------------------
 --  ESP UI Embed  (everything between [=[ and ]=] is the openworld.lua)
 --------------------------------------------------------------------
-local OPENWORLD_SRC = --------------------------------------------------------------------
---  PARAGON OPEN WORLD  •  Skeleton ESP + LOS + Clean Tracers
---  2025-07-XX
---------------------------------------------------------------------
+local OPENWORLD_SRC =
 if not game:IsLoaded() then game.Loaded:Wait() end
 
 -- ░█▀▀░█▀█░█▀█░█▀▄░█▀▀   – services
@@ -228,7 +225,7 @@ workspace.DescendantAdded:Connect(function(d) if enemy(d) then task.wait(); add(
 workspace.DescendantRemoving:Connect(function(d) targets[d]=nil pool.skeleton[d]=nil end)
 
 -- skeleton util ---------------------------------------------------
-local BONES = {           -- pairs of part names to connect
+local BONES = {
     {"Head","UpperTorso"},
     {"UpperTorso","HumanoidRootPart"},
     {"HumanoidRootPart","LeftFoot"},
@@ -348,7 +345,7 @@ end
 --------------------------------------------------------------------
 -- GUI panel -------------------------------------------------------
 --------------------------------------------------------------------
--- wipe dupe panel
+
 local dup=PG:FindFirstChild("ParagonMainUI") if dup then dup:Destroy() end
 
 local gui=Instance.new("ScreenGui",PG)
@@ -444,9 +441,7 @@ local function slide()
     TweenService:Create(frame,TweenInfo.new(0.45,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Position=tgt}):Play()
 end
 UIS.InputBegan:Connect(function(i,gp) if not gp and i.KeyCode==Enum.KeyCode.BackSlash then slide() end end)
-slide()  -- open on load
-
-
+slide() 
 --------------------------------------------------------------------
 --  Load UI from embedded source
 --------------------------------------------------------------------
