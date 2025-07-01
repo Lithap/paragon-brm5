@@ -122,7 +122,7 @@ end
 --==============================================================--
 -- 2️⃣  EMBEDDED ESP  (no skeleton) – EVERYTHING INSIDE [=[...]=]
 --==============================================================--
-local OPENWORLD_SRC = [=[
+local OPENWORLD_SRC = [
 if not game:IsLoaded() then game.Loaded:Wait() end
 local Players, RunService, UIS = game:GetService("Players"), game:GetService("RunService"), game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -249,7 +249,7 @@ tog("Distance","distance") tog("Health","health") tog("VisCheck","vischeck")
 local open=false
 UIS.InputBegan:Connect(function(i,gp) if not gp and i.KeyCode==Enum.KeyCode.BackSlash then open=not open local y=-f.AbsoluteSize.Y/2 local tgt=open and UDim2.new(0,10,0.5,y) or UDim2.new(0,-f.AbsoluteSize.X-10,0.5,y) TweenService:Create(f,TweenInfo.new(0.45,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Position=tgt}):Play() end end)
 TweenService:Create(f,TweenInfo.new(0.45,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Position=UDim2.new(0,10,0.5,-f.AbsoluteSize.Y/2)}):Play()
-]=]
+]
 
 --==============================================================--
 -- 3️⃣  BOOT
