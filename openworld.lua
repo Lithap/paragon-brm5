@@ -1,26 +1,8 @@
-if not game:IsLoaded() then game.Loaded:Wait() end
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local LP = Players.LocalPlayer
-
-if LP:FindFirstChild("PlayerGui") and LP.PlayerGui:FindFirstChild("ParagonMainUI") then
-    LP.PlayerGui.ParagonMainUI:Destroy()
-end
-
-local gui = Instance.new("ScreenGui")
-gui.Name = "ParagonMainUI"
-gui.IgnoreGuiInset = true
-gui.ResetOnSpawn = false
-if syn and syn.protect_gui then syn.protect_gui(gui) end
-gui.Parent = LP:WaitForChild("PlayerGui")
-
-local COLOR_MAIN = Color3.fromRGB(22, 22, 26)
-local COLOR_ACCENT = Color3.fromRGB(0,160,255)
-local COLOR_TEXT = Color3.fromRGB(240,240,240)
+local UIS = game:GetService("UserInputService")
 
 local frame = Instance.new("Frame", gui)
-frame.AnchorPoint = Vector2.new(0.5, 0.5)
-frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+frame.AnchorPoint = Vector2.new(0, 0.5)
+frame.Position = UDim2.new(0, -600, 0.5, 0)
 frame.Size = UDim2.new(0, 600, 0, 340)
 frame.BackgroundColor3 = COLOR_MAIN
 frame.BackgroundTransparency = 0.2
@@ -40,12 +22,10 @@ header.TextSize = 32
 header.TextColor3 = COLOR_TEXT
 header.TextStrokeTransparency = 0.85
 
-
 local divider = Instance.new("Frame", frame)
 divider.Position = UDim2.new(0, 10, 0, 52)
 divider.Size = UDim2.new(1, -20, 0, 1)
 divider.BackgroundColor3 = COLOR_ACCENT
-
 
 local content = Instance.new("Frame", frame)
 content.Position = UDim2.new(0, 10, 0, 60)
@@ -55,7 +35,6 @@ local layout = Instance.new("UIListLayout", content)
 layout.Padding = UDim.new(0, 10)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Top
-
 
 local function createButton(text)
     local btn = Instance.new("TextButton")
@@ -86,20 +65,30 @@ local function createButton(text)
 end
 
 
-local selfBtn = createButton("🙋 Self")
-selfBtn.Parent = content
-
-local onlineBtn = createButton("🌐 Online")
-onlineBtn.Parent = content
-
-local weaponBtn = createButton("🔫 Weapon")
-weaponBtn.Parent = content
-
-local worldBtn = createButton("🌍 World")
-worldBtn.Parent = content
+createButton("🙋 Self").Parent = content
+createButton("🌐 Online").Parent = content
+createButton("🔫 Weapon").Parent = content
+createButton("🌍 World").Parent = content
 
 
-frame.Position = UDim2.new(0.5, 0, 1.2, 0)
-TweenService:Create(frame, TweenInfo.new(0.7, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-    Position = UDim2.new(0.5, 0, 0.5, 0)
-}):Play()
+local menuOpen = false
+local openPos = UDim2.new(0, 10, 0.5, -frame.Size.Y.Offset / 2)
+local closedPos = UDim2.new(0, -frame.Size.X.Offset, 0.5, -frame.Size.Y.Offset / 2)
+
+local function toggleMenu()
+    menuOpen = not menuOpen
+    local targetPos = menuOpen and openPos or closedPos
+    TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Position = targetPos
+    }):Play()
+end
+
+
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.BackSlash then
+        toggleMenu()
+    end
+end)
+
+
+toggleMenu()
