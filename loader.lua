@@ -1,117 +1,107 @@
 --------------------------------------------------------------------
---  PARAGON • all-in-one loader  (key = "paragon")
---  • hard-kills Valex1 spam
---  • embedded Skeleton ESP
---  • July-2025
+--  PARAGON • one-file loader (key = paragon)
+--  ✓ Skeleton ESP (3 000 studs, tracers, chams, distance, hp, LOS)
+--  ✓ Kills Valex1 *and* hides its console noise
+--  ✓ No HttpGet
 --------------------------------------------------------------------
 if not game:IsLoaded() then game.Loaded:Wait() end
 
 --------------------------------------------------------------------
--- 0️⃣  GLOBAL “Valex1” KILLER + console cleaner
+-- 0️⃣  GLOBAL “Valex1” KILL & CONSOLE FILTER
 --------------------------------------------------------------------
 local LogService = game:GetService("LogService")
 
-local function scrub(inst)
+-- swallow every console line that mentions Valex1
+LogService.MessageOut:Connect(function(msg, typ)
+    if typ == Enum.MessageType.MessageError and msg:find("Valex1") then
+        return true  -- stop it from printing
+    end
+end)
+
+-- disable the script copies themselves
+local function nuke(inst)
     if inst:IsA("LocalScript") and inst.Name == "Valex1" then
-        pcall(function() inst.Source = "" end)  -- neutralise before run
         inst.Disabled = true
         inst.Name     = "Valex1_DISABLED"
     end
 end
--- nuke existing
-for _,d in ipairs(game:GetDescendants()) do scrub(d) end
--- nuke future
-game.DescendantAdded:Connect(scrub)
--- swallow any residual console errors
-LogService.MessageOut:Connect(function(msg,typ)
-    if typ == Enum.MessageType.MessageError
-       and msg:find("Valex1: attempt to call a nil value") then
-        return true
-    end
-end)
+-- wipe existing
+for _,d in ipairs(game:GetDescendants()) do nuke(d) end
+-- wipe future
+game.DescendantAdded:Connect(nuke)
 
 --------------------------------------------------------------------
--- 1️⃣  Loader panel
+-- 1️⃣  LOADER PANEL (unchanged UI)
 --------------------------------------------------------------------
-local Players      = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local UIS          = game:GetService("UserInputService")
-local Camera       = workspace.CurrentCamera
+local Players, TweenService, UIS, Camera =
+      game:GetService("Players"), game:GetService("TweenService"),
+      game:GetService("UserInputService"), workspace.CurrentCamera
 local LP           = Players.LocalPlayer
 local GUI_PARENT   = LP:WaitForChild("PlayerGui")
 
--- wipe old loader
-local old = GUI_PARENT:FindFirstChild("ParagonLoaderUI")
-if old then old:Destroy() end
+(GUI_PARENT:FindFirstChild("ParagonLoaderUI"))?.:Destroy()
 
 -- colours
-local COL_BLUE  = Color3.fromRGB(0,160,255)
-local COL_RED   = Color3.fromRGB(255,70,70)
-local COL_GREEN = Color3.fromRGB(80,255,80)
-local COL_TEXT  = Color3.fromRGB(235,235,235)
-local COL_PANEL = Color3.fromRGB(20,20,24)
-local VALID_KEY = "paragon"
+local C_BLUE   = Color3.fromRGB(0,160,255)
+local C_RED    = Color3.fromRGB(255,70,70)
+local C_GREEN  = Color3.fromRGB(80,255,80)
+local C_TEXT   = Color3.fromRGB(235,235,235)
+local C_PANEL  = Color3.fromRGB(20,20,24)
+local KEY      = "paragon"
 
--- root gui
+-- ScreenGui
 local sg = Instance.new("ScreenGui", GUI_PARENT)
 sg.Name, sg.IgnoreGuiInset, sg.ResetOnSpawn = "ParagonLoaderUI", true, false
 if syn and syn.protect_gui then syn.protect_gui(sg) end
 
--- panel
+-- main panel
 local panel = Instance.new("Frame", sg)
-panel.BackgroundColor3, panel.BackgroundTransparency = COL_PANEL, 0.3
+panel.BackgroundColor3, panel.BackgroundTransparency = C_PANEL, 0.3
 panel.BorderSizePixel = 0
 panel.Position = UDim2.new(0.5,-160,0.5,-130)
 Instance.new("UICorner", panel).CornerRadius = UDim.new(0,6)
-local stroke = Instance.new("UIStroke", panel) stroke.Color = COL_BLUE
+local stroke = Instance.new("UIStroke", panel) stroke.Color = C_BLUE
 
 local header = Instance.new("TextLabel", panel)
-header.Size = UDim2.new(1,0,0,40)
-header.BackgroundTransparency = 1
-header.Font = Enum.Font.GothamBlack
-header.TextScaled = true
-header.TextColor3 = COL_TEXT
-header.Text = "PARAGON"
+header.Size = UDim2.new(1,0,0,40) header.BackgroundTransparency = 1
+header.Font = Enum.Font.GothamBlack header.TextScaled = true
+header.TextColor3 = C_TEXT header.Text = "PARAGON"
 
 local divider = Instance.new("Frame", panel)
-divider.Position, divider.Size, divider.BackgroundColor3 =
-    UDim2.new(0,6,0,42), UDim2.new(1,-12,0,1), COL_BLUE
+divider.Position = UDim2.new(0,6,0,42) divider.Size = UDim2.new(1,-12,0,1)
+divider.BackgroundColor3 = C_BLUE
 
 local container = Instance.new("Frame", panel) container.BackgroundTransparency = 1
-local layout = Instance.new("UIListLayout", container) layout.Padding = UDim.new(0,4)
+local layout    = Instance.new("UIListLayout", container) layout.Padding = UDim.new(0,4)
 
 -- key row
-local row = Instance.new("Frame", container)
-row.Size = UDim2.new(1,0,0,32) row.BackgroundTransparency = 1
+local row = Instance.new("Frame", container) row.Size=UDim2.new(1,0,0,32) row.BackgroundTransparency=1
 local lbl = Instance.new("TextLabel", row)
-lbl.BackgroundTransparency = 1
-lbl.Size = UDim2.new(0.55,0,1,0)
-lbl.Font = Enum.Font.GothamSemibold lbl.TextScaled = true
-lbl.TextColor3 = COL_TEXT lbl.TextXAlignment = Enum.TextXAlignment.Left
-lbl.Text = "Enter Key:"
+lbl.BackgroundTransparency=1 lbl.Size=UDim2.new(0.55,0,1,0)
+lbl.Font=Enum.Font.GothamSemibold lbl.TextScaled=true lbl.TextColor3=C_TEXT
+lbl.TextXAlignment=Enum.TextXAlignment.Left lbl.Text="Enter Key:"
 local box = Instance.new("TextBox", row)
 box.Size, box.Position = UDim2.new(0.45,0,1,0), UDim2.new(0.55,0,0,0)
-box.BackgroundColor3, box.BackgroundTransparency = COL_PANEL, 0.35
+box.BackgroundColor3, box.BackgroundTransparency = C_PANEL, 0.35
 box.BorderSizePixel = 0
-box.Font = Enum.Font.Gotham box.TextScaled = true
-box.TextColor3 = COL_TEXT box.PlaceholderText = VALID_KEY
+box.Font = Enum.Font.Gotham box.TextScaled=true box.TextColor3=C_TEXT
+box.PlaceholderText = KEY box.ClearTextOnFocus=false
 Instance.new("UICorner", box).CornerRadius = UDim.new(0,4)
 
 -- unlock button
 local unlock = Instance.new("TextButton", container)
-unlock.Size = UDim2.new(1,0,0,30)
-unlock.BackgroundColor3, unlock.BackgroundTransparency = COL_PANEL, 0.35
+unlock.Size=UDim2.new(1,0,0,30)
+unlock.BackgroundColor3, unlock.BackgroundTransparency = C_PANEL, 0.35
 unlock.BorderSizePixel = 0
-unlock.Font = Enum.Font.GothamBold unlock.TextScaled = true
-unlock.TextColor3 = COL_TEXT unlock.Text = "Unlock"
+unlock.Font=Enum.Font.GothamBold unlock.TextScaled=true
+unlock.TextColor3=C_TEXT unlock.Text="Unlock"
 Instance.new("UICorner", unlock).CornerRadius = UDim.new(0,4)
 local hi = Instance.new("Frame", unlock)
-hi.Size = UDim2.new(1,0,1,0) hi.BackgroundColor3 = COL_BLUE
-hi.BackgroundTransparency = 0.9 hi.BorderSizePixel = 0
+hi.Size=UDim2.new(1,0,1,0) hi.BackgroundColor3=C_BLUE hi.BackgroundTransparency=0.9 hi.BorderSizePixel=0
 
--- resize
+-- autosize
 local function resize()
-    local need = 46
+    local need=46
     for _,c in ipairs(container:GetChildren()) do
         if c:IsA("Frame") or c:IsA("TextButton") then
             need += c.Size.Y.Offset + layout.Padding.Offset
@@ -119,24 +109,24 @@ local function resize()
     end
     container.Size      = UDim2.new(1,-12,0,need-46)
     container.Position  = UDim2.new(0,6,0,46)
-    local vp = Camera.ViewportSize
+    local vp=Camera.ViewportSize
     panel.Size = UDim2.new(0, math.clamp(vp.X*0.28,320,500), 0, math.max(need+20,260))
 end
 resize(); layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(resize)
 Camera:GetPropertyChangedSignal("ViewportSize"):Connect(resize)
 
 local function flash(col,msg)
-    stroke.Color, divider.BackgroundColor3 = col,col
-    unlock.Text, unlock.TextColor3 = msg,col
+    stroke.Color, divider.BackgroundColor3 = col, col
+    unlock.Text, unlock.TextColor3 = msg, col
     task.wait(1)
-    unlock.Text, unlock.TextColor3 = "Unlock", COL_TEXT
-    stroke.Color, divider.BackgroundColor3 = COL_BLUE,COL_BLUE
+    unlock.Text, unlock.TextColor3 = "Unlock", C_TEXT
+    stroke.Color, divider.BackgroundColor3 = C_BLUE, C_BLUE
 end
 
 --------------------------------------------------------------------
--- 2️⃣  Embedded Skeleton-ESP
+-- 2️⃣  EMBEDDED SKELETON-ESP  (nothing external)
 --------------------------------------------------------------------
-local OPENWORLD_SRC = 
+local OPENWORLD_SRC =
 --------------------------------------------------------------------
 --  PARAGON OPEN WORLD  •  Skeleton ESP (3 000 studs, no walk-walls)
 --------------------------------------------------------------------
@@ -358,26 +348,27 @@ UIS.InputBegan:Connect(function(i,gp) if not gp and i.KeyCode==Enum.KeyCode.Back
 slide()
 --------------------------------------------------------------------
 
-
 --------------------------------------------------------------------
--- 3️⃣  loader logic
+-- 3️⃣  Loader logic
 --------------------------------------------------------------------
 local function loadUI()
-    local ok,err=pcall(loadstring,OPENWORLD_SRC)
-    if not ok then flash(COL_RED,"UI Error") warn(err) return end
+    local ok, err = pcall(loadstring, OPENWORLD_SRC)
+    if not ok then flash(C_RED,"UI Error") warn(err) return end
     TweenService:Create(panel,TweenInfo.new(0.4),{BackgroundTransparency=1,Size=UDim2.new(0,0,0,0)}):Play()
     task.wait(0.45) sg:Destroy()
 end
 local function check()
-    if (box.Text:gsub("%s+",""):lower())==VALID_KEY then flash(COL_GREEN,"Granted") loadUI()
-    else flash(COL_RED,"Invalid") end
+    if (box.Text:gsub("%s+",""):lower()) == KEY
+    then flash(C_GREEN,"Granted") loadUI()
+    else flash(C_RED,"Invalid") end
 end
 unlock.MouseButton1Click:Connect(check)
 UIS.InputBegan:Connect(function(i,gp) if not gp and i.KeyCode==Enum.KeyCode.Return then check() end end)
 unlock.MouseEnter:Connect(function() TweenService:Create(hi,TweenInfo.new(0.12),{BackgroundTransparency=0.25}):Play() end)
 unlock.MouseLeave:Connect(function() TweenService:Create(hi,TweenInfo.new(0.12),{BackgroundTransparency=0.9}):Play() end)
 
-panel.Position=UDim2.new(0.5,-150,1,0)
+-- entrance tween
+panel.Position = UDim2.new(0.5,-150,1,0)
 TweenService:Create(panel,TweenInfo.new(0.7,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{
     Position=UDim2.new(0.5,-panel.Size.X.Offset/2,0.5,-panel.Size.Y.Offset/2)
 }):Play()
