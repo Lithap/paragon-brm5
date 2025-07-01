@@ -1,20 +1,55 @@
-local UIS = game:GetService("UserInputService")
+--------------------------------------------------------------------
+--  PARAGON OPEN WORLD UI | v2.0                                     
+--------------------------------------------------------------------
+if not game:IsLoaded() then game.Loaded:Wait() end
 
+--------------------------------------------------------------------
+-- Services & PlayerGui
+--------------------------------------------------------------------
+local Players      = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UIS          = game:GetService("UserInputService")
+local LP           = Players.LocalPlayer
+
+-- destroy dupes
+local pg = LP:WaitForChild("PlayerGui")
+local prev = pg:FindFirstChild("ParagonMainUI")
+if prev then prev:Destroy() end
+
+--------------------------------------------------------------------
+-- Colors
+--------------------------------------------------------------------
+local COLOR_MAIN   = Color3.fromRGB(22,22,26)
+local COLOR_ACCENT = Color3.fromRGB(0,160,255)
+local COLOR_TEXT   = Color3.fromRGB(240,240,240)
+
+--------------------------------------------------------------------
+-- Root ScreenGui
+--------------------------------------------------------------------
+local gui = Instance.new("ScreenGui")
+gui.Name, gui.IgnoreGuiInset, gui.ResetOnSpawn = "ParagonMainUI", true, false
+if syn and syn.protect_gui then syn.protect_gui(gui) end
+gui.Parent = pg
+
+--------------------------------------------------------------------
+-- Frame
+--------------------------------------------------------------------
 local frame = Instance.new("Frame", gui)
-frame.AnchorPoint = Vector2.new(0, 0.5)
-frame.Position = UDim2.new(0, -600, 0.5, 0)
-frame.Size = UDim2.new(0, 600, 0, 340)
-frame.BackgroundColor3 = COLOR_MAIN
-frame.BackgroundTransparency = 0.2
+frame.AnchorPoint = Vector2.new(0,0.5)   -- left-edge anchor
+frame.Position    = UDim2.new(0,-610,0.5,0)  -- start fully hidden
+frame.Size        = UDim2.new(0,600,0,340)
+frame.BackgroundColor3, frame.BackgroundTransparency = COLOR_MAIN, 0.2
 frame.BorderSizePixel = 0
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
-local stroke = Instance.new("UIStroke", frame)
-stroke.Color = COLOR_ACCENT
-stroke.Thickness = 1
-stroke.Transparency = 0.4
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,8)
 
+local stroke = Instance.new("UIStroke", frame)
+stroke.Color, stroke.Thickness, stroke.Transparency = COLOR_ACCENT, 1, 0.4
+
+--------------------------------------------------------------------
+-- Header
+--------------------------------------------------------------------
 local header = Instance.new("TextLabel", frame)
-header.Size = UDim2.new(1, 0, 0, 50)
+header.Size = UDim2.new(1,0,0,50)
 header.BackgroundTransparency = 1
 header.Text = "PARAGON | OPEN WORLD"
 header.Font = Enum.Font.GothamBlack
@@ -23,72 +58,74 @@ header.TextColor3 = COLOR_TEXT
 header.TextStrokeTransparency = 0.85
 
 local divider = Instance.new("Frame", frame)
-divider.Position = UDim2.new(0, 10, 0, 52)
-divider.Size = UDim2.new(1, -20, 0, 1)
+divider.Position = UDim2.new(0,10,0,52)
+divider.Size = UDim2.new(1,-20,0,1)
 divider.BackgroundColor3 = COLOR_ACCENT
 
+--------------------------------------------------------------------
+-- Content container
+--------------------------------------------------------------------
 local content = Instance.new("Frame", frame)
-content.Position = UDim2.new(0, 10, 0, 60)
-content.Size = UDim2.new(1, -20, 1, -70)
+content.Position = UDim2.new(0,10,0,60)
+content.Size     = UDim2.new(1,-20,1,-70)
 content.BackgroundTransparency = 1
+
 local layout = Instance.new("UIListLayout", content)
-layout.Padding = UDim.new(0, 10)
+layout.Padding = UDim.new(0,10)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.VerticalAlignment = Enum.VerticalAlignment.Top
+layout.VerticalAlignment   = Enum.VerticalAlignment.Top
 
-local function createButton(text)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 250, 0, 40)
-    btn.Text = text
-    btn.Font = Enum.Font.GothamSemibold
-    btn.TextSize = 20
-    btn.TextColor3 = COLOR_TEXT
-    btn.BackgroundColor3 = COLOR_MAIN
-    btn.BackgroundTransparency = 0.2
-    btn.BorderSizePixel = 0
-    btn.AutoButtonColor = false
-    local uicorner = Instance.new("UICorner", btn)
-    uicorner.CornerRadius = UDim.new(0, 6)
-    local h = Instance.new("UIStroke", btn)
-    h.Color = COLOR_ACCENT
-    h.Thickness = 1
-    h.Transparency = 0.8
+--------------------------------------------------------------------
+-- Button Factory
+--------------------------------------------------------------------
+local function make(text)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0,250,0,40)
+    b.Text = text
+    b.Font = Enum.Font.GothamSemibold
+    b.TextSize, b.TextColor3 = 20, COLOR_TEXT
+    b.BackgroundColor3, b.BackgroundTransparency, b.BorderSizePixel =
+        COLOR_MAIN, 0.2, 0
+    b.AutoButtonColor = false
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
+    local hi = Instance.new("UIStroke", b)
+    hi.Color, hi.Thickness, hi.Transparency = COLOR_ACCENT, 1, 0.8
 
-    btn.MouseEnter:Connect(function()
-        TweenService:Create(h, TweenInfo.new(0.2), {Transparency = 0.2}):Play()
+    -- hover glow
+    b.MouseEnter:Connect(function()
+        TweenService:Create(hi,TweenInfo.new(0.2),{Transparency=0.2}):Play()
     end)
-    btn.MouseLeave:Connect(function()
-        TweenService:Create(h, TweenInfo.new(0.2), {Transparency = 0.8}):Play()
+    b.MouseLeave:Connect(function()
+        TweenService:Create(hi,TweenInfo.new(0.2),{Transparency=0.8}):Play()
     end)
-
-    return btn
+    return b
 end
 
+-- buttons
+make("🙋 Self").Parent     = content
+make("🌐 Online").Parent   = content
+make("🔫 Weapon").Parent   = content
+make("🌍 World").Parent    = content
 
-createButton("🙋 Self").Parent = content
-createButton("🌐 Online").Parent = content
-createButton("🔫 Weapon").Parent = content
-createButton("🌍 World").Parent = content
+--------------------------------------------------------------------
+-- Slide-in / Slide-out Toggle
+--------------------------------------------------------------------
+local menuOpen  = false
+local openPos   = UDim2.new(0,10, 0.5, -frame.Size.Y.Offset/2)
+local closedPos = UDim2.new(0,-frame.Size.X.Offset-10, 0.5, -frame.Size.Y.Offset/2)
 
-
-local menuOpen = false
-local openPos = UDim2.new(0, 10, 0.5, -frame.Size.Y.Offset / 2)
-local closedPos = UDim2.new(0, -frame.Size.X.Offset, 0.5, -frame.Size.Y.Offset / 2)
-
-local function toggleMenu()
+local function toggle()
     menuOpen = not menuOpen
-    local targetPos = menuOpen and openPos or closedPos
-    TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Position = targetPos
+    TweenService:Create(frame, TweenInfo.new(0.5,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {
+        Position = menuOpen and openPos or closedPos
     }):Play()
 end
 
-
-UIS.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == Enum.KeyCode.BackSlash then
-        toggleMenu()
-    end
+-- Backslash key
+UIS.InputBegan:Connect(function(i,gp)
+    if gp then return end
+    if i.KeyCode == Enum.KeyCode.BackSlash then toggle() end
 end)
 
-
-toggleMenu()
+-- open automatically once
+toggle()
