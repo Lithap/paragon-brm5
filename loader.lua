@@ -1,11 +1,10 @@
--- Paragon BRM5 • Rayfield Ultra‑ESP (v16)
+-- Paragon BRM5 • Rayfield Ultra‑ESP (v17)
 -- ────────────────────────────────────────────────────────────────
---  Improvements over v15
---  • Tracers now anchor perfectly to screen‑bottom centre and never drift.
---  • Off‑screen enemies draw tracers to the nearest edge (no sky lines).
---  • Clean toggle logic – disabling a module zeroes all its objects instantly.
---  • Added Skeleton toggle to the Rayfield list.
---  • Minor colour tweaks for clarity.
+--  Changes from v16
+--  • Skeleton module fully removed (caused Valex errors for some users).
+--  • All other features unchanged: Head‑Box, 2‑D Box, Chams, Tracers,
+--    Distance, Health, VisCheck, edge‑aware tracers.
+--  • Clean toggle list (no more Skeleton entry).
 --------------------------------------------------------------------
 local Plrs,RunSrv,Ws = game:GetService("Players"),game:GetService("RunService"),game:GetService("Workspace")
 local LP,Camera = Plrs.LocalPlayer, Ws.CurrentCamera
@@ -24,13 +23,12 @@ local DRAWING_OK = pcall(function() return Drawing end)
 --------------------------------------------------------------------
 local ESP = {
   Enabled = true,
-  Options = {headbox=true, box2d=true, skeleton=false, chams=true, tracers=true,
+  Options = {headbox=true, box2d=true, chams=true, tracers=true,
              distance=true, health=true, vischeck=true},
   Tgt = {}, -- [Model] = {root, head}
   C   = {headbox=setmetatable({}, {__mode='k'}), cham=setmetatable({}, {__mode='k'}),
          box2d=setmetatable({}, {__mode='k'}), tracer=setmetatable({}, {__mode='k'}),
-         label=setmetatable({}, {__mode='k'}), health=setmetatable({}, {__mode='k'}),
-         skel=setmetatable({}, {__mode='k'})}
+         label=setmetatable({}, {__mode='k'}), health=setmetatable({}, {__mode='k'})}
 }
 
 --------------------------------------------------------------------
@@ -72,24 +70,8 @@ local function getDraw(tbl,id,k)
   if not DRAWING_OK then return end
   local o=tbl[id]; if not o then o=Drawing.new(k);tbl[id]=o end; return o
 end
-local function setVis(o,val) if o then o.Visible=val end end
+local function hide(tbl,id) local o=tbl[id]; if o then o.Visible=false end end
 local function hpColor(f)return Color3.fromRGB((1-f)*255,f*255,0) end
-
-local bones={"Head","UpperTorso","LowerTorso","LeftUpperLeg","RightUpperLeg","LeftLowerLeg","RightLowerLeg"}
-local seg={{1,2},{2,3},{3,4},{3,5},{4,6},{5,7}}
-local function drawSkel(m)
-  if not DRAWING_OK then return end
-  local lines=ESP.C.skel[m] or {}; if #lines==0 then for i=1,#seg do lines[i]=Drawing.new("Line");lines[i].Thickness=1.5 end ESP.C.skel[m]=lines end
-  for i,con in ipairs(seg) do
-    local p1=m:FindFirstChild(bones[con[1]]); local p2=m:FindFirstChild(bones[con[2]])
-    if p1 and p2 then
-      local v1,on1=Camera:WorldToViewportPoint(p1.Position)
-      local v2,on2=Camera:WorldToViewportPoint(p2.Position)
-      if on1 and on2 then lines[i].Visible=true; lines[i].From=Vector2.new(v1.X,v1.Y); lines[i].To=Vector2.new(v2.X,v2.Y); lines[i].Color=Color3.fromRGB(0,255,0) else lines[i].Visible=false end
-    else lines[i].Visible=false end
-  end
-end
-local function hideSkel(m) if DRAWING_OK and ESP.C.skel[m] then for _,l in ipairs(ESP.C.skel[m]) do l.Visible=false end end end
 
 local function canSee(part)
   if not ESP.Options.vischeck then return true end
@@ -103,7 +85,6 @@ local function clearAll()
   for _,h in pairs(ESP.C.cham)    do h.Enabled=false end
   if DRAWING_OK then
     for _,tbl in pairs{ESP.C.box2d,ESP.C.tracer,ESP.C.label,ESP.C.health} do for _,o in pairs(tbl) do o.Visible=false end end
-    for m,_ in pairs(ESP.C.skel) do hideSkel(m) end
   end
 end
 
@@ -111,7 +92,7 @@ end
 -- RENDER
 --------------------------------------------------------------------
 local acc=0
-RunService.RenderStepped:Connect(function(dt)
+RunSrv.RenderStepped:Connect(function(dt)
   if not ESP.Enabled then return end
   acc+=dt; if UPDATE_HZ>0 and acc<1/UPDATE_HZ then return end; acc=0
 
@@ -120,7 +101,7 @@ RunService.RenderStepped:Connect(function(dt)
 
   for mdl,t in pairs(ESP.Tgt) do
     local root,head=t.root,t.head; if not root or not head or not mdl.Parent then ESP.Tgt[mdl]=nil continue end
-    local dist=(root.Position-camPos).Magnitude; if dist>MAX_DIST then hideSkel(mdl) continue end
+    local dist=(root.Position-camPos).Magnitude; if dist>MAX_DIST then continue end
     local scr,onScr=Camera:WorldToViewportPoint(root.Position); local vis=canSee(root)
 
     -- HEAD BOX
@@ -139,17 +120,27 @@ RunService.RenderStepped:Connect(function(dt)
         local rect=getDraw(ESP.C.box2d,mdl,"Square"); rect.Visible=true; rect.Thickness=1.5; rect.Color=Color3.fromRGB(255,165,0); rect.Filled=false; rect.Size=Vector2.new(math.abs(br.X-tl.X),math.abs(br.Y-tl.Y)); rect.Position=Vector2.new(math.min(tl.X,br.X), math.min(tl.Y,br.Y))
       else hide(ESP.C.box2d,mdl) end
 
-      -- SKELETON
-      if ESP.Options.skeleton then drawSkel(mdl) else hideSkel(mdl) end
-
-      -- TRACER (edge‑aware)
+      -- TRACER
       if ESP.Options.tracers then
         local tr=getDraw(ESP.C.tracer,mdl,"Line"); tr.Visible=true; tr.Thickness=1.5; tr.Color=vis and Color3.fromRGB(255,0,0) or Color3.fromRGB(255,255,0)
         local endPos=Vector2.new(scr.X,scr.Y)
-        -- clamp endPos to screen edges if off‑screen (avoid sky streaks)
-        if not onScr then
-          endPos.X = math.clamp(endPos.X,0,vp.X)
-          endPos.Y = math.clamp(endPos.Y,0,vp.Y)
-        end
+        if not onScr then endPos.X=math.clamp(endPos.X,0,vp.X); endPos.Y=math.clamp(endPos.Y,0,vp.Y) end
         tr.From,tr.To=tracerOrigin,endPos
-      else hide
+      else hide(ESP.C.tracer,mdl) end
+
+      -- DISTANCE
+      if ESP.Options.distance then local lb=getDraw(ESP.C.label,mdl,"Text"); lb.Visible=true; lb.Center,lb.Outline,lb.Size=true,true,14; lb.Color=Color3.new(1,1,1); lb.Text=("%.0f"):format(dist); lb.Position=Vector2.new(scr.X,scr.Y-18)
+      else hide(ESP.C.label,mdl) end
+
+      -- HEALTH
+      if ESP.Options.health then local hum=mdl:FindFirstChildOfClass("Humanoid"); if hum then local f=math.clamp(hum.Health/hum.MaxHealth,0,1); local hb2=getDraw(ESP.C.health,mdl,"Square"); hb2.Visible=true; hb2.Filled=true; hb2.Size=BAR_SIZE*Vector2.new(f,1); hb2.Position=Vector2.new(scr.X-BAR_SIZE.X/2,scr.Y+14); hb2.Color=hpColor(f) end
+      else hide(ESP.C.health,mdl) end
+    end
+  end
+end)
+
+--------------------------------------------------------------------
+-- RAYFIELD GUI
+--------------------------------------------------------------------
+local Rayfield=loadstring(game:HttpGet("https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua"))()
+local Window=Rayfield:CreateWindow({Name="Paragon BRM5 • Ultra-ESP",LoadingTitle="Paragon BRM5",LoadingSubtitle="Ultra ESP",Theme="Midnight",KeySystem=true,KeySettings={Title="Paragon Key",Subtitle="Enter key",Note="Key is
