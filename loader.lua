@@ -1,71 +1,66 @@
--- Paragon BRM5 • Rayfield Edition (v8 – **Rayfield‑only, linked flags**)  
--- NPC ESP with 3‑D Box, Chams, Tracers, Distance, Health – ON by default.  
--- • Loads ONLY the ESP logic (strips original GUI), exposing its `OPT` table so Rayfield toggles work.  
--- • No legacy Paragon panel anymore.  
--- • Key is **paragon**.  Right‑Shift opens Rayfield.
+-- Paragon BRM5 • Rayfield Lite (v10 – stable)
+-- NPC ESP: **3‑D Box + Chams** only.  No legacy GUI.  Key = paragon.
+-- Implementation notes:
+--   • Uses the already‑stripped `openworld_esp.lua` (no GUI) → no slicing, no regex fail.
+--   • Executes it in _G so the code runs unmodified.
+--   • Rayfield toggles write directly to the global OPT table.
+--   • Boxes & Chams enabled at startup.
 
 ---------------------------------------------------------------------
--- 0. Silence “valex1” console spam -----------------------------------
+-- 0. Mute Valex spam -----------------------------------------------
 ---------------------------------------------------------------------
-local LogService, ScriptContext = game:GetService("LogService"), game:GetService("ScriptContext")
+local LS, SC = game:GetService("LogService"), game:GetService("ScriptContext")
 local function swallow(msg) return typeof(msg)=="string" and msg:lower():find("valex1") end
-LogService.MessageOut:Connect(function(m,t) if t==Enum.MessageType.MessageError and swallow(m) then return true end end)
-ScriptContext.Error:Connect(function(m) if swallow(m) then return true end end)
+LS.MessageOut:Connect(function(m,t) if t==Enum.MessageType.MessageError and swallow(m) then return true end end)
+SC.Error:Connect(function(m) if swallow(m) then return true end end)
 
 ---------------------------------------------------------------------
--- 1. Fetch Parvus openworld.lua and keep only ESP core ---------------
+-- 1. Download GUI‑free Parvus ESP core ------------------------------
 ---------------------------------------------------------------------
-local src = game:HttpGet("https://raw.githubusercontent.com/Lithap/paragon-brm5/main/esp.lua")
-assert(src and #src>2000, "Failed to download esp.lua")
--- extract everything before the GUI block
-local core = src:match("^(.-)%-%-%s*GUI")
-assert(core and #core>1000, "Failed to slice ESP core; repo layout changed")
+local coreSrc = game:HttpGet("https://raw.githubusercontent.com/Lithap/paragon-brm5/main/esp.lua")
+assert(coreSrc and #coreSrc>1000, "Failed to fetch esp.lua")
 
--- load in a dedicated environment so we can reach OPT/clearESP
-local env = {}; setmetatable(env,{__index=_G})
-local fn,err = loadstring(core,"ParagonESPCore"); assert(fn,err)
-setfenv(fn, env); assert(pcall(fn), "ESP core runtime error")
+local coreFn, loadErr = loadstring(coreSrc, "ParvusESPCore"); assert(coreFn, loadErr)
+assert(pcall(coreFn), "Parvus ESP runtime error – check executor")
+
+-- Ensure globals exist
+_G.OPT      = _G.OPT      or {}
+_G.ESP_ON   = _G.ESP_ON   or false
+_G.clearESP = _G.clearESP or function() end
+
+-- Enable only Box + Chams
+for _,k in ipairs({"box","chams"})                 do _G.OPT[k] = true end
+for _,k in ipairs({"tracers","distance","health","vischeck","walkwalls"}) do _G.OPT[k] = false end
+_G.ESP_ON = true
 
 ---------------------------------------------------------------------
--- 2. Turn ON desired visuals by default ------------------------------
----------------------------------------------------------------------
-for _,k in ipairs({"box","chams","tracers","distance","health"}) do env.OPT[k]=true end
-env.ESP_ON = true
-
----------------------------------------------------------------------
--- 3. Boot Rayfield ---------------------------------------------------
+-- 2. Boot Rayfield --------------------------------------------------
 ---------------------------------------------------------------------
 getgenv().SecureMode = true
 local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua"))()
 
 local Window = Rayfield:CreateWindow({
-    Name            = "Paragon BRM5 • Rayfield",
-    LoadingTitle    = "Paragon BRM5",
-    LoadingSubtitle = "Advanced ESP",
-    Theme           = "Midnight",
-    ConfigurationSaving = {Enabled=true, FileName="ParagonCfg"},
-    KeySystem       = true,
-    KeySettings     = {Title="Paragon Key",Subtitle="Enter key",Note="Key is: paragon",SaveKey=true,Key={"paragon"}}
+  Name="Paragon BRM5 • Rayfield Lite",  LoadingTitle="Paragon BRM5", LoadingSubtitle="Lite ESP",
+  Theme="Midnight", ConfigurationSaving={Enabled=true,FileName="ParagonCfg"},
+  KeySystem=true,
+  KeySettings={Title="Paragon Key",Subtitle="Enter key",Note="Key is: paragon",SaveKey=true,Key={"paragon"}}
 })
 
 ---------------------------------------------------------------------
--- 4. Rayfield ↔ OPT bridge ------------------------------------------
+-- 3. Rayfield UI ----------------------------------------------------
 ---------------------------------------------------------------------
 local tab = Window:CreateTab("ESP","eye")
 
 tab:CreateLabel("Master Control")
 
 tab:CreateToggle({Name="Enable ESP",CurrentValue=true,Callback=function(on)
-    env.ESP_ON = on; if not on and env.clearESP then env.clearESP() end end})
+    _G.ESP_ON = on; if not on then _G.clearESP() end end})
 
 tab:CreateLabel("Modules (NPCs)")
 local function add(flag,label)
-    tab:CreateToggle({Name=label,CurrentValue=env.OPT[flag],Callback=function(v) env.OPT[flag]=v end})
+    tab:CreateToggle({Name=label,CurrentValue=_G.OPT[flag],Callback=function(v) _G.OPT[flag]=v end})
 end
 add("box","3‑D Box")
 add("chams","Chams")
-add("tracers","Tracers")
-add("distance","Distance Text")
-add("health","Health Bar")
 
-Rayfield:Notify({Title="Paragon BRM5",Content="Rayfield ESP ready – Right‑Shift opens UI",Duration=5})
+Rayfield:Notify({Title="Paragon BRM5",Content="Lite ESP loaded – Right‑Shift shows UI",Duration=5})
