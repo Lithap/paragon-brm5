@@ -16,7 +16,7 @@ ScriptContext.Error:Connect(function(m) if swallow(m) then return true end end)
 -- 1. Fetch Parvus openworld.lua and keep only ESP core ---------------
 ---------------------------------------------------------------------
 local src = game:HttpGet("https://raw.githubusercontent.com/Lithap/paragon-brm5/main/esp.lua")
-assert(src and #src>2000, "Failed to download openworld.lua")
+assert(src and #src>2000, "Failed to download esp.lua")
 -- extract everything before the GUI block
 local core = src:match("^(.-)%-%-%s*GUI")
 assert(core and #core>1000, "Failed to slice ESP core; repo layout changed")
