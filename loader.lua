@@ -89,50 +89,64 @@ local function clearESP()
 end
 
 ---------------------------------------------------------------------
--- 4. Fly Logic
+-- 4. Fly Logic  (refined)
+--    • Toggle key = F  or Rayfield switch
+--    • Uses BodyVelocity + sets Humanoid.PlatformStand to keep player upright
+--    • WASD input captured each frame so diagonal speed is consistent
 ---------------------------------------------------------------------
-local moveDir = Vector3.new()
+local flyVel  -- BodyVelocity instance
+local humanoid
+local moveVec = Vector3.zero
+
+-- Helper to (re)attach BodyVelocity
+local function enableFly()
+    local char = LP.Character or LP.CharacterAdded:Wait()
+    humanoid   = char:FindFirstChildOfClass("Humanoid")
+    local hrp  = char:WaitForChild("HumanoidRootPart",2)
+    if not hrp then return end
+    if not flyVel then
+        flyVel = Instance.new("BodyVelocity")
+        flyVel.MaxForce = Vector3.new(1e5,1e5,1e5)
+        flyVel.P = 12e3
+    end
+    flyVel.Parent = hrp
+    humanoid.PlatformStand = true
+end
+local function disableFly()
+    if flyVel then flyVel.Parent = nil end
+    if humanoid then humanoid.PlatformStand = false end
+    moveVec = Vector3.zero
+end
+
+-- Hot‑toggle with F key
 UserInput.InputBegan:Connect(function(i,gp)
     if gp then return end
-    if i.KeyCode == Enum.KeyCode.F then Fly.Active = not Fly.Active end
-    if i.KeyCode == Enum.KeyCode.W then moveDir += Vector3.new(0,0,-1) end
-    if i.KeyCode == Enum.KeyCode.S then moveDir += Vector3.new(0,0, 1) end
-    if i.KeyCode == Enum.KeyCode.A then moveDir += Vector3.new(-1,0,0) end
-    if i.KeyCode == Enum.KeyCode.D then moveDir += Vector3.new( 1,0,0) end
-end)
-UserInput.InputEnded:Connect(function(i,gp)
-    if gp then return end
-    if i.KeyCode == Enum.KeyCode.W then moveDir -= Vector3.new(0,0,-1) end
-    if i.KeyCode == Enum.KeyCode.S then moveDir -= Vector3.new(0,0, 1) end
-    if i.KeyCode == Enum.KeyCode.A then moveDir -= Vector3.new(-1,0,0) end
-    if i.KeyCode == Enum.KeyCode.D then moveDir -= Vector3.new( 1,0,0) end
-end)
-
-local flyBV -- BodyVelocity instance holder
-RunService.Heartbeat:Connect(function(dt)
-    if Fly.Active then
-        if not flyBV then
-            local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                flyBV = Instance.new("BodyVelocity")
-                flyBV.MaxForce = Vector3.new(9e4,9e4,9e4)
-                flyBV.Parent   = hrp
-                hrp.AssemblyLinearVelocity = Vector3.zero
-            end
-        end
-        if flyBV and flyBV.Parent then
-            local dir = moveDir
-            if dir.Magnitude > 0 then dir = dir.Unit else dir = Vector3.zero end
-            dir = Camera.CFrame:VectorToWorldSpace(dir)
-            flyBV.Velocity = dir * Fly.Speed
-        end
-    else
-        if flyBV then flyBV:Destroy(); flyBV = nil end
+    if i.KeyCode == Enum.KeyCode.F then
+        Fly.Active = not Fly.Active
+        if Fly.Active then enableFly() else disableFly() end
     end
 end)
 
+-- Movement keys update "moveVec" each frame for smooth blending
+local keyMap = {
+    [Enum.KeyCode.W] = Vector3.new( 0, 0,-1),
+    [Enum.KeyCode.S] = Vector3.new( 0, 0, 1),
+    [Enum.KeyCode.A] = Vector3.new(-1, 0, 0),
+    [Enum.KeyCode.D] = Vector3.new( 1, 0, 0),
+}
+UserInput.InputBegan:Connect(function(i,gp) if gp then return end; local v=keyMap[i.KeyCode]; if v then moveVec += v end end)
+UserInput.InputEnded:Connect(function(i,gp) if gp then return end; local v=keyMap[i.KeyCode]; if v then moveVec -= v end end)
+
+-- Apply velocity each Heartbeat
+RunService.Heartbeat:Connect(function()
+    if Fly.Active and flyVel and flyVel.Parent then
+        local dir = moveVec.Magnitude > 0 and moveVec.Unit or Vector3.zero
+        dir = Camera.CFrame:VectorToWorldSpace(dir)
+        flyVel.Velocity = dir * Fly.Speed
+    end
+end)
 ---------------------------------------------------------------------
--- 5. Render loop
+-- 5. Render loop Render loop
 ---------------------------------------------------------------------
 RunService.RenderStepped:Connect(function()
     if not ESP.Enabled then return end
