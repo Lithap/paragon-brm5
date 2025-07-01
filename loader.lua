@@ -1,13 +1,12 @@
 --------------------------------------------------------------------
---  PARAGON  •  All-in-one Loader  (ESP UI embedded)
---  - Return-key friendly
---  - Silences BRM5’s buggy “Valex1” LocalScript
---  - No HttpGet needed – UI code is in OPENWORLD_SRC below
+--  PARAGON LOADER  •  July-2025
+--  + Return-key safe
+--  + Silences map-spawned “Valex1” LocalScript that spams errors
 --------------------------------------------------------------------
 if not game:IsLoaded() then game.Loaded:Wait() end
 
 --------------------------------------------------------------------
---  Services & locals
+-- Services & locals
 --------------------------------------------------------------------
 local Players      = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -17,15 +16,17 @@ local LP           = Players.LocalPlayer
 local GUI_PARENT   = LP:WaitForChild("PlayerGui")
 
 --------------------------------------------------------------------
--- 1️⃣  Kill Valex1 (map sound helper that spams errors once)
+-- 1️⃣  KILL the buggy Valex1 script (and any future clones)
 --------------------------------------------------------------------
-local function nukeValex(s)
-    if s:IsA("LocalScript") and s.Name == "Valex1" then
-        s.Disabled = true
+local function nukeValex(child)
+    if child:IsA("LocalScript") and child.Name == "Valex1" then
+        child.Disabled = true
     end
 end
-local existing = LP.PlayerScripts:FindFirstChild("Valex1")
-if existing then nukeValex(existing) end
+-- disable existing copy (some maps preload it)
+local v = LP.PlayerScripts:FindFirstChild("Valex1")
+if v then nukeValex(v) end
+-- disable future spawns
 LP.PlayerScripts.ChildAdded:Connect(nukeValex)
 
 --------------------------------------------------------------------
@@ -37,17 +38,20 @@ local COL_GREEN  = Color3.fromRGB(80,255,80)
 local COL_TEXT   = Color3.fromRGB(235,235,235)
 local COL_PANEL  = Color3.fromRGB(20,20,24)
 
-local VALID_KEY   = "paragon"      -- <<< change if you like
+local VALID_KEY  = "paragon"
+local UI_URL     = "https://raw.githubusercontent.com/Lithap/paragon-brm5/main/openworld.lua"
 local MIN_PANEL_H = 260
 
 --------------------------------------------------------------------
---  Remove any previous loader
+-- Clean previous loader
 --------------------------------------------------------------------
-local old = GUI_PARENT:FindFirstChild("ParagonLoaderUI")
-if old then old:Destroy() end
+do  -- scoped destroy to avoid nil global
+    local old = GUI_PARENT:FindFirstChild("ParagonLoaderUI")
+    if old then old:Destroy() end
+end
 
 --------------------------------------------------------------------
---  Root ScreenGui
+-- Root ScreenGui
 --------------------------------------------------------------------
 local sg = Instance.new("ScreenGui")
 sg.Name, sg.IgnoreGuiInset, sg.ResetOnSpawn = "ParagonLoaderUI", true, false
@@ -55,7 +59,7 @@ if syn and syn.protect_gui then syn.protect_gui(sg) end
 sg.Parent = GUI_PARENT
 
 --------------------------------------------------------------------
---  Main panel
+-- Build panel
 --------------------------------------------------------------------
 local panel = Instance.new("Frame", sg)
 panel.BackgroundColor3, panel.BackgroundTransparency, panel.BorderSizePixel =
@@ -76,11 +80,15 @@ local divider = Instance.new("Frame", panel)
 divider.Position, divider.Size, divider.BackgroundColor3 =
     UDim2.new(0,6,0,42), UDim2.new(1,-12,0,1), COL_BLUE
 
-local container = Instance.new("Frame", panel) container.BackgroundTransparency = 1
-local layout = Instance.new("UIListLayout", container) layout.Padding = UDim.new(0,4)
+local container = Instance.new("Frame", panel)
+container.BackgroundTransparency = 1
+local layout = Instance.new("UIListLayout", container)
+layout.Padding = UDim.new(0,4)
 
 -- Key row
-local keyRow = Instance.new("Frame", container) keyRow.Size=UDim2.new(1,0,0,32) keyRow.BackgroundTransparency=1
+local keyRow = Instance.new("Frame", container)
+keyRow.Size = UDim2.new(1,0,0,32)
+keyRow.BackgroundTransparency = 1
 local keyLbl = Instance.new("TextLabel", keyRow)
 keyLbl.BackgroundTransparency = 1
 keyLbl.Size = UDim2.new(0.55,0,1,0)
@@ -91,11 +99,13 @@ keyLbl.TextXAlignment = Enum.TextXAlignment.Left
 keyLbl.Text = "Enter Key:"
 local keyBox = Instance.new("TextBox", keyRow)
 keyBox.Size, keyBox.Position = UDim2.new(0.45,0,1,0), UDim2.new(0.55,0,0,0)
-keyBox.BackgroundColor3, keyBox.BackgroundTransparency, keyBox.BorderSizePixel =
-    COL_PANEL, 0.35, 0
+keyBox.BackgroundColor3, keyBox.BackgroundTransparency = COL_PANEL, 0.35
+keyBox.BorderSizePixel = 0
 keyBox.Font = Enum.Font.Gotham
-keyBox.TextScaled, keyBox.TextColor3 = true, COL_TEXT
-keyBox.PlaceholderText, keyBox.ClearTextOnFocus = VALID_KEY, false
+keyBox.TextScaled = true
+keyBox.TextColor3 = COL_TEXT
+keyBox.PlaceholderText = VALID_KEY
+keyBox.ClearTextOnFocus = false
 Instance.new("UICorner", keyBox).CornerRadius = UDim.new(0,4)
 
 -- Unlock button
@@ -115,7 +125,7 @@ hover.BackgroundTransparency = 0.9
 hover.BorderSizePixel = 0
 
 --------------------------------------------------------------------
---  Autosize panel
+-- Resize on content / viewport
 --------------------------------------------------------------------
 local function resize()
     local need = 46
@@ -124,18 +134,19 @@ local function resize()
             need += c.Size.Y.Offset + layout.Padding.Offset
         end
     end
-    container.Size     = UDim2.new(1,-12,0,need-46)
-    container.Position = UDim2.new(0,6,0,46)
+    container.Size      = UDim2.new(1,-12,0,need-46)
+    container.Position  = UDim2.new(0,6,0,46)
 
     local vp = Camera.ViewportSize
     panel.Size = UDim2.new(0, math.clamp(vp.X*0.28,320,500),
                            0, math.max(need+20, MIN_PANEL_H))
 end
-resize(); layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(resize)
+resize()
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(resize)
 Camera:GetPropertyChangedSignal("ViewportSize"):Connect(resize)
 
 --------------------------------------------------------------------
---  Visual feedback helpers
+-- Helpers
 --------------------------------------------------------------------
 local function tint(col)
     stroke.Color, divider.BackgroundColor3 = col, col
@@ -149,27 +160,15 @@ local function flash(col,msg)
 end
 
 --------------------------------------------------------------------
---  ESP UI Embed  (everything between [=[ and ]=] is the openworld.lua)
---------------------------------------------------------------------
-local OPENWORLD_SRC = [=[
---------------------------------------------------------------------
--- (openworld.lua contents go here – the exact full script from
--- the previous answer.  For brevity in this view, it is omitted.
--- Paste the full code block labelled “openworld.lua” from the
--- previous answer RIGHT HERE, unmodified.)
---------------------------------------------------------------------
-]=]
-
---------------------------------------------------------------------
---  Load UI from embedded source
+-- Load Open-World UI
 --------------------------------------------------------------------
 local function loadUI()
-    local ok, err = pcall(loadstring, OPENWORLD_SRC)
-    if not ok then
-        flash(COL_RED,"UI Error")
-        warn("[PARAGON] UI syntax:", err)
-        return
-    end
+    local body
+    local ok, err = pcall(function() body = game:HttpGet(UI_URL, true) end)
+    if not ok or not body then flash(COL_RED,"HTTP Fail") return end
+    local run, runErr = pcall(loadstring(body))
+    if not run then flash(COL_RED,"Load Err") warn(runErr) return end
+
     TweenService:Create(panel,TweenInfo.new(0.4),{
         BackgroundTransparency = 1,
         Size = UDim2.new(0,0,0,0)
@@ -179,7 +178,7 @@ local function loadUI()
 end
 
 --------------------------------------------------------------------
---  Key check
+-- Key check
 --------------------------------------------------------------------
 local function checkKey()
     if (keyBox.Text:gsub("%s+",""):lower()) == VALID_KEY
@@ -191,7 +190,7 @@ UIS.InputBegan:Connect(function(i,gp)
     if not gp and i.KeyCode==Enum.KeyCode.Return then checkKey() end
 end)
 
--- Hover tween
+-- Hover effect
 unlock.MouseEnter:Connect(function()
     TweenService:Create(hover,TweenInfo.new(0.12),{BackgroundTransparency=0.25}):Play()
 end)
@@ -200,7 +199,7 @@ unlock.MouseLeave:Connect(function()
 end)
 
 --------------------------------------------------------------------
---  Entrance tween
+-- Entrance tween
 --------------------------------------------------------------------
 panel.Position = UDim2.new(0.5,-150,1,0)
 TweenService:Create(panel,TweenInfo.new(0.7,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{
